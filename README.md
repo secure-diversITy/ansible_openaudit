@@ -1,0 +1,1 @@
+# ansible_openaudit_inventory
