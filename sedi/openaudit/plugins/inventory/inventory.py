@@ -111,7 +111,7 @@ keyed_groups:
       key: cmdb_manufacturer.lower()
 
 compose:
-   ansible_host: ip4_address
+   ansible_host: cmdb_ip
 
 '''
 
