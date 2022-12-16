@@ -43,10 +43,18 @@ options:
             - https
         required: true
     oa_username:
-        description: Username for logging into the API
+        description:
+            - Username for logging into the API.
+            - Avoid storing sensitive data in clear text by using inline encrypted variables.
+            - e.g. C(ansible-vault encrypt_string 'this-is-a-real-username' --name oa_username --ask-vault-pass)
+            - At this early stage full encrypted vault files are not accessible.
         required: true
     oa_password:
-        description: Password for logging into the API
+        description:
+            - Password for logging into the API.
+            - Avoid storing sensitive data in clear text by using inline encrypted variables.
+            - e.g. C(ansible-vault encrypt_string 'this-is-a-realpassword!' --name oa_password --ask-vault-pass)
+            - At this early stage full encrypted vault files are not accessible.
         required: true
     oa_fieldsTranslate:
         description:
@@ -85,14 +93,26 @@ add this module to your ansible.cfg:
 enable_plugins = sedi.openaudit.inventory
 
 
-Example hosts.openaudit.yaml file:
+Example inventory.openaudit.yaml file:
 
 ---
 plugin: sedi.openaudit.inventory
 oa_api_server: openaudit.myserver.com
 oa_api_proto: https
-oa_username: "{{ vault_api_server_user }}"
-oa_password: "{{ vault_api_server_password }}"
+oa_username: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          37613130323132393165303666656339343436666437383165653333643466636537633830656236
+          3331393866363762303061393564643663626366663839300a306435383232623061373730353737
+          38353536336463636430336337353531633737396531636535333738303165643631333238393936
+          3238626537636536650a356536393164306633656539316464393265663136623066636330663364
+          38386461393135633636636138353433333134373034316232633935383162316462
+oa_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          30333461363261633939656530633836373661663465666263633664616266373734336662363261
+          3832343361653132306464393162633532333438383531650a666138646135316239316434336435
+          37306535393365663736326264396436623534343465323737316635316237653566363364633430
+          6434313164326461340a663138356137366365666638316239303135643234303662393839376132
+          62373835363736323561356165373230656537343032633563363361633162373135
 
 oa_fieldsTranslate:
     cmdb_foo: 7
