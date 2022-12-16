@@ -160,7 +160,6 @@ locations_uri_path = '/open-audit/index.php/locations?&format=json'
 # orgs_uri_path = '/open-audit/index.php/orgs?&format=json'
 
 
-
 class InventoryModule(BaseInventoryPlugin, Constructable):
 
     NAME = 'sedi.openaudit.inventory'
