@@ -76,8 +76,6 @@ seealso:
 extends_documentation_fragment:
     - constructed
 """
-# extends_documentation_fragment:
-#    - inventory_cache
 
 EXAMPLES = r'''
 
@@ -161,7 +159,6 @@ fields_uri_path = '/open-audit/index.php/devices?format=json&properties=system.i
 locations_uri_path = '/open-audit/index.php/locations?&format=json'
 # orgs_uri_path = '/open-audit/index.php/orgs?&format=json'
 
-# class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
 
 
 class InventoryModule(BaseInventoryPlugin, Constructable):
@@ -217,7 +214,6 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
     def to_json(self):
         return self.json
 
-    # def parse(self, inventory, loader, path, cache=True):
     def parse(self, inventory, loader, path, cache=None):
         """
         parse all data and create a dictionary containing all joined data for a host
@@ -233,34 +229,6 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         super(InventoryModule, self).parse(inventory, loader, path)
 
         self._read_config_data(path)
-
-        # allow caching
-        # self.load_cache_plugin()
-        # cache_key = self.get_cache_key(path)
-
-        # cache may be True or False at this point to indicate if the inventory is being refreshed
-        # get the user's cache option too to see if we should save the cache if it is changing
-        # user_cache_setting = self.get_option('cache')
-
-        # read if the user has caching enabled and the cache isn't being refreshed
-        # attempt_to_read_cache = user_cache_setting and cache
-        # update if the user has caching enabled and the cache is being refreshed; update this value to True if the cache has expired below
-        # cache_needs_update = user_cache_setting and not cache
-
-        # attempt to read the cache if inventory isn't being refreshed and the user has caching enabled
-        # if attempt_to_read_cache:
-        #    try:
-        #        results = self._cache[cache_key]
-        #    except KeyError:
-        #        # This occurs if the cache_key is not in the cache or if the cache_key expired, so the cache needs to be updated
-        #        cache_needs_update = True
-        # if not attempt_to_read_cache or cache_needs_update:
-        #    # parse the provided inventory source
-        #    results = self.get_inventory()
-        # if cache_needs_update:
-        #    self._cache[cache_key] = results
-        # submit the parsed data to the inventory object (add_host, set_variable, etc)
-        # self.populate(results)
 
         # build first part of the uri based on the user config
         api_base_uri = self.get_option('oa_api_proto') + '://' + self.get_option('oa_api_server')
