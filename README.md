@@ -1,3 +1,4 @@
-# About
+# Ansible Collection - sedi.openaudit.inventory
 
-Ansible collection around [Open-AudIT](https://firstwave.com/products/network-discovery-and-inventory-software/)
+For the documentation of the collection check out the [wiki](https://github.com/secure-diversITy/ansible_openaudit/wiki)
+
