@@ -6,7 +6,7 @@ version=$(grep version: galaxy.yml | cut -d ":" -f2 | tr -d " ")
 
 [ -z "$gpgid" ] && echo "ERROR: you have to specify the env var 'gpgid=mailaddr|gpg id'" && exit 3
 
-ansible-galaxy collection build \
+ansible-galaxy collection build $@ \
     && echo "... build OK" \
     && tar -Oxzf ${namespace}-${name}-${version}.tar.gz MANIFEST.json | gpg --output ${namespace}-${name}-${version}.asc --detach-sign --armor --local-user ${gpgid} - \
     && echo "... signing OK" \

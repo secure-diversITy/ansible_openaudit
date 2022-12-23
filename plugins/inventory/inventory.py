@@ -86,47 +86,14 @@ EXAMPLES = r'''
 
 # required imports
 import requests
-import json
 import re
+from ansible_collections.sedi.openaudit.plugins.module_utils.common import OA_vars as oavars
+from ansible_collections.sedi.openaudit.plugins.module_utils.common import OA_get as oaget
 from ansible.plugins.inventory import BaseInventoryPlugin, Constructable
 from ansible.utils.vars import combine_vars
 
 # minimal expected length for variable / fields content
 min_var_chars = 2
-
-# https://<server>/open-audit/index.php/devices
-# changes here likely require to change device_uri_path (add/remove properties)
-devicesTranslate = {
-    'orgs.name': 'cmdb_org',
-    'org_id': 'cmdb_org_id',
-    'system.ip': 'cmdb_ip',
-    'system.manufacturer': 'cmdb_manufacturer',
-    'system.id': 'cmdb_oa_id',
-    'system.fqdn': 'cmdb_fqdn',
-    'system.status': 'cmdb_status',
-    'system.location_id': 'cmdb_location_id'
-}
-
-# https://<server>/open-audit/index.php/locations
-locationsTranslate = {
-    'orgs.name': 'cmdb_org',
-    'orgs.id': 'l_cmdb_org_id',
-    'name': 'cmdb_location',
-    'suite': 'cmdb_location_vars',
-}
-
-# build properties list we want to fetch based on devicesTranslate
-devp = []
-for pk, pv in devicesTranslate.items():
-    devp.append(pk)
-devicesproperties = ','.join(devp)
-
-# API URI paths
-logon_uri_path = '/open-audit/index.php/logon'
-device_uri_path = '/open-audit/index.php/devices?format=json&properties=' + devicesproperties
-fields_uri_path = '/open-audit/index.php/devices?format=json&properties=system.id&sub_resource=field'
-locations_uri_path = '/open-audit/index.php/locations?&format=json'
-# orgs_uri_path = '/open-audit/index.php/orgs?&format=json'
 
 
 class InventoryModule(BaseInventoryPlugin, Constructable):
@@ -148,27 +115,10 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         global oaSession
         global oa_login
         oaSession = requests.Session()
-        oa_login = oaSession.post(base_uri + logon_uri_path, data={'username': self.get_option('oa_username'), 'password': self.get_option('oa_password')})
+        oa_login = oaSession.post(base_uri + oavars.logon_uri_path,
+                                  data={'username': self.get_option('oa_username'), 'password': self.get_option('oa_password')})
         if oa_login.status_code != 200:
             raise Exception("Could not login to the API at " + base_uri + "! Check servername and credentials...")
-
-    def get_oa_data(self, base_uri: str, uri_path: str):
-        """
-        fetch data from given api url
-        """
-        OAdata = oaSession.get(base_uri + uri_path, cookies=oa_login.cookies)
-        jsonData = json.loads(OAdata.text)
-        jsonDataList = jsonData['data']
-
-        if OAdata.status_code != 200:
-            raise Exception("Could not access " + uri_path + "! Check servername and credentials...")
-
-        # Check again if we have valid data
-        for resp in jsonDataList:
-            if resp is False:
-                raise Exception("Error while accessing the API")
-
-        return jsonDataList
 
     def to_valid_group_name(self, name):
         """
@@ -178,9 +128,6 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         """
         sname = re.compile(r'^[\d\W]|[^\w]').sub("_", name)
         return sname
-
-    def to_json(self):
-        return self.json
 
     def parse(self, inventory, loader, path, cache=None):
         """
@@ -205,9 +152,9 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         self.login_oa(api_base_uri)
 
         # fetch all data
-        oaDataList = self.get_oa_data(api_base_uri, device_uri_path)
-        oaFieldsList = self.get_oa_data(api_base_uri, fields_uri_path)
-        oaLocationsList = self.get_oa_data(api_base_uri, locations_uri_path)
+        oaDataList = oaget.oa_data(self, oaSession, oa_login, api_base_uri, oavars.devices_uri_path)
+        oaFieldsList = oaget.oa_data(self, oaSession, oa_login, api_base_uri, oavars.fields_uri_path)
+        oaLocationsList = oaget.oa_data(self, oaSession, oa_login, api_base_uri, oavars.locations_uri_path)
 
         # read config + display debug info
         conf_strict = self.get_option('strict')
@@ -223,9 +170,9 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
             hostsDict = {}
 
             # first of all get the system values and create a dict based on the translated items
-            for k in devicesTranslate:
+            for k in oavars.devicesTranslate:
                 try:
-                    hostsDict[devicesTranslate[k]] = i['attributes'][k]
+                    hostsDict[oavars.devicesTranslate[k]] = i['attributes'][k]
                 except Exception:
                     self.display.vvvv('Open-AudIT Device #' + str(i['attributes']['system.id']) + " Does not have " + str(k))
                     continue
@@ -242,7 +189,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
                 if not hostsDict['cmdb_location_id'] and not hostsDict['cmdb_org_id']:
                     continue
                 else:
-                    for lk, lv in locationsTranslate.items():
+                    for lk, lv in oavars.locationsTranslate.items():
                         if hostsDict['cmdb_location_id'] != loc['attributes']['id']:
                             continue
                         if len(str(loc['attributes'][lk])) < min_var_chars:
