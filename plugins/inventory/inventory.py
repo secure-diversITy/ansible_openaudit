@@ -3,6 +3,7 @@
 #
 # Copyright:
 #   - 2022 T.Fischer <mail |at| sedi -DOT- one>
+#   - 2023 T.Fischer <mail |at| sedi -DOT- one>
 #
 # License:
 # GNU General Public License v3.0 (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
@@ -179,6 +180,11 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
 
             # add host and the base vars to the ansible inventory based on the FQDN
             host = hostsDict['cmdb_fqdn']
+            # handle empty FQDN (skip entry, print warning)
+            if len(str(host)) < 4:
+                self.display.vvv('WARNING: host >' + host + '< with id >' + str(hostsDict['cmdb_oa_id']) + '< seems not having a FQDN set')
+                continue
+            # add host to inventory list including base vars
             self.inventory.add_host(host)
             for dkey, dvar in hostsDict.items():
                 self.inventory.set_variable(host, dkey, dvar)
