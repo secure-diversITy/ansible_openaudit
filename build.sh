@@ -10,7 +10,7 @@ ansible-galaxy collection build $@ \
     && echo "... build OK" \
     && tar -Oxzf ${namespace}-${name}-${version}.tar.gz MANIFEST.json | gpg --output ${namespace}-${name}-${version}.asc --detach-sign --armor --local-user ${gpgid} - \
     && echo "... signing OK" \
-    && tar -Oxzf ${namespace}-${name}-${version}.tar.gz MANIFEST.json | gpg --verify ${namespace}-${name}-${version}.asc - \
+    && tar -Oxzf ${namespace}-${name}-${version}.tar.gz MANIFEST.json | gpg --verify ${namespace}-${name}-${version}.asc - >> /dev/null 2>&1\
     && echo "... signature check OK" \
     && echo "OK: all went well :)" && exit
 
