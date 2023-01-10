@@ -3,20 +3,31 @@
 #
 # Copyright:
 #   - 2022 T.Fischer <mail |at| sedi -DOT- one>
+#   - 2023 T.Fischer <mail |at| sedi -DOT- one>
 #
 # License: GNU General Public License v3.0 (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 #
 #####################################################################################################
 
 from __future__ import (absolute_import, division, print_function)
+__metaclass__ = type
 
 import json
-import requests
-from ansible.errors import AnsibleActionFail
-__metaclass__ = type
+from ansible.module_utils.six import raise_from
+
+# required to satisfy sanity import test:
+try:
+    import requests
+except ImportError as imp_exc:
+    REQUESTS_LIB_IMPORT_ERROR = imp_exc
+else:
+    REQUESTS_LIB_IMPORT_ERROR = None
 
 
 class OA_vars():
+
+    if REQUESTS_LIB_IMPORT_ERROR:
+        raise_from(ImportError("missing a required python lib: 'requests'"), REQUESTS_LIB_IMPORT_ERROR)
 
     # https://<server>/open-audit/index.php/devices
     # changes here likely require to change device_uri_path (add/remove properties)
@@ -54,11 +65,18 @@ class OA_vars():
     # orgs_uri_path = '/open-audit/index.php/orgs?&format=json'
 
     # messages
-    default_error_hint = "Check that:\n- your credentials are correct\n- the api_server and api_proto are set correctly\n- the device actually exists in Open-AudIT\n-'FQDN' field is set properly in Open-AudIT and within your task"
+    default_error_hint = "Check that:\n- your credentials are correct\n"\
+                         "- the api_server and api_proto are set correctly\n"\
+                         "- the device actually exists in Open-AudIT\n"\
+                         "-'FQDN' field is set properly in Open-AudIT and within your task"
     documentation_link = "https://github.com/secure-diversITy/ansible_openaudit/wiki"
 
 
 class OA_get():
+
+    if REQUESTS_LIB_IMPORT_ERROR:
+        # raise Exception("missing a required python lib: 'requests'\n%s" % REQUESTS_LIB_IMPORT_ERROR)
+        raise_from(ImportError("missing a required python lib: 'requests'"), REQUESTS_LIB_IMPORT_ERROR)
 
     def logon_api(self, uri, usr, pw, task_vars, tmp, parsed_args):
         """
@@ -80,9 +98,10 @@ class OA_get():
                                                  task_vars=task_vars, tmp=tmp)
 
             if module_return['status'] != 200:
-                raise ValueError
+                raise ValueError("Could not login to the API at %s" % uri)
         except Exception as e:
-            raise AnsibleActionFail("Could not login to the API at " + uri)
+            # raise AnsibleActionFail("Could not login to the API at " + uri)
+            raise e
 
         return module_return['cookies_string']
 
@@ -99,13 +118,13 @@ class OA_get():
                                                  task_vars=task_vars, tmp=tmp)
 
             if module_return['status'] != 200:
-                raise ValueError
+                raise ValueError("Could not login to the API at %s" % module_args['url'])
         except Exception as e:
-            raise AnsibleActionFail("Could not access the API at " + module_args['url'])
+            raise e
 
         return module_return['json']
 
-    def oa_data(self, oaSession, oa_login, base_uri: str, uri_path: str):
+    def oa_data(self, oaSession, oa_login, base_uri, uri_path):
         """
         LEGACY! Use api() instead (see above)
         fetches data from given api url
@@ -116,11 +135,11 @@ class OA_get():
         jsonDataList = jsonData['data']
 
         if OAdata.status_code != 200:
-            raise AnsibleActionFail("Could not access " + uri_path + "! Check servername and credentials...")
+            raise Exception("Could not access %s ! Check servername and credentials..." % uri_path)
 
         # Check again if we have valid data
         for resp in jsonDataList:
             if resp is False:
-                raise AnsibleActionFail("Error while accessing the API")
+                raise Exception("Error while accessing the API")
 
         return jsonDataList

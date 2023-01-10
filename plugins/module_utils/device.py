@@ -3,19 +3,19 @@
 #
 # Copyright:
 #   - 2022 T.Fischer <mail |at| sedi -DOT- one>
+#   - 2023 T.Fischer <mail |at| sedi -DOT- one>
 #
 # License: GNU General Public License v3.0 (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 #
 #####################################################################################################
 
 from __future__ import (absolute_import, division, print_function)
+__metaclass__ = type
 
 import json
-from ansible.errors import AnsibleActionFail
 from ansible.module_utils._text import to_native
 from ansible_collections.sedi.openaudit.plugins.module_utils.common import OA_vars as oavars
 from ansible_collections.sedi.openaudit.plugins.module_utils.common import OA_get as oaget
-__metaclass__ = type
 
 
 class OA_device():
@@ -35,9 +35,9 @@ class OA_device():
                     return ret
             # this should never happen usually. but... if e.g. a host is defined in a static
             # hosts list but not in Open-AudIT we need to catch this here
-            raise ValueError
+            raise ValueError("Could not find matching device id for FQDN")
         except Exception as e:
-            raise Exception("Could not find matching device id for FQDN")
+            raise e
 
     def update(self, scheme_server, task_vars, module_args, tmp, device_data):
         """
@@ -49,7 +49,7 @@ class OA_device():
             api_content = oaget.api(self, tmp=tmp, task_vars=task_vars, parsed_args=module_args)
             parsed_device_data = OA_device.parse_device_data(self, data=api_content['data'], fqdn=device_data['fqdn'])
         except Exception as e:
-            raise AnsibleActionFail("%s" % to_native(e))
+            raise e
 
         device_id = str(parsed_device_data['system.id'])
 
@@ -73,6 +73,6 @@ class OA_device():
             module_args['body'] = "data=" + json.dumps(body_data)
             module_return = oaget.api(self, tmp=tmp, task_vars=task_vars, parsed_args=module_args)
         except Exception as e:
-            raise AnsibleActionFail("Problem occured while updating the following attributes:\n" + json.dumps(body_data) + "\n%s" % to_native(e))
+            raise Exception("Problem occured while updating the following attributes:\n" + json.dumps(body_data) + "\n%s" % to_native(e))
 
         return module_return

@@ -86,12 +86,20 @@ EXAMPLES = r'''
 '''
 
 # required imports
-import requests
 import re
 from ansible_collections.sedi.openaudit.plugins.module_utils.common import OA_vars as oavars
 from ansible_collections.sedi.openaudit.plugins.module_utils.common import OA_get as oaget
 from ansible.plugins.inventory import BaseInventoryPlugin, Constructable
 from ansible.utils.vars import combine_vars
+from ansible.module_utils.six import raise_from
+
+# required to satisfy sanity import test:
+try:
+    import requests
+except ImportError as imp_exc:
+    REQUESTS_LIB_IMPORT_ERROR = imp_exc
+else:
+    REQUESTS_LIB_IMPORT_ERROR = None
 
 # minimal expected length for variable / fields content
 min_var_chars = 2
@@ -100,6 +108,9 @@ min_var_chars = 2
 class InventoryModule(BaseInventoryPlugin, Constructable):
 
     NAME = 'sedi.openaudit.inventory'
+
+    if REQUESTS_LIB_IMPORT_ERROR:
+        raise_from(ImportError("missing a required python lib: 'requests'"), REQUESTS_LIB_IMPORT_ERROR)
 
     def verify_file(self, path):
         if super(InventoryModule, self).verify_file(path):
