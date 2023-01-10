@@ -13,12 +13,11 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 # required imports
-from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.sedi.openaudit.plugins.module_utils.common import OA_vars as oavars
 from ansible_collections.sedi.openaudit.plugins.module_utils.common import OA_get as oaget
 from ansible_collections.sedi.openaudit.plugins.module_utils.device import OA_device as oadev
 from ansible.plugins.action import ActionBase
-from ansible.errors import AnsibleError, AnsibleAction, _AnsibleActionDone, AnsibleActionFail
+from ansible.errors import AnsibleActionFail
 from ansible.module_utils._text import to_native
 
 
@@ -68,10 +67,10 @@ class ActionModule(ActionBase):
 
         try:
             for o in _args['attributes']:
-                for l, v in o.items():
-                    device_data[l] = v
+                for lk, v in o.items():
+                    device_data[lk] = v
         except KeyError as e:
-            raise AnsibleActionFail("Error: 'attributes' option is missing.")
+            raise AnsibleActionFail("Error: 'attributes' option is missing.\nError was: %s" % to_native(e))
         except Exception as e:
             raise AnsibleActionFail("You have not specified valid 'attributes'.\nError was: %s" % to_native(e))
 
@@ -100,11 +99,12 @@ class ActionModule(ActionBase):
             except Exception as e:
                 raise AnsibleActionFail("Problem occured while updating attributes for >" + device_data['fqdn']
                                         + "<\n\nError message was:\n%s\n\n%s" % (to_native(e), oavars.default_error_hint))
-        elif collection_type == "location":
-            api_content = oaget.api(self, tmp=tmp, task_vars=task_vars, parsed_args=module_args)
-        elif collection_type == "field":
-            api_content = oaget.api(self, tmp=tmp, task_vars=task_vars, parsed_args=module_args)
+        # elif collection_type == "location":
+            # api_content = oaget.api(self, tmp=tmp, task_vars=task_vars, parsed_args=module_args)
+        # elif collection_type == "field":
+            # api_content = oaget.api(self, tmp=tmp, task_vars=task_vars, parsed_args=module_args)
         else:
-            raise AnsibleActionFail("Missing required option: you must set device, location or field!")
+            # raise AnsibleActionFail("Missing required option: you must set device, location or field!")
+            raise AnsibleActionFail("Missing required option: you must set >device<")
 
         return result

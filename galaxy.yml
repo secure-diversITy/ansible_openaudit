@@ -8,7 +8,7 @@ namespace: sedi
 name: openaudit
 
 # The version of the collection. Must be compatible with semantic versioning
-version: 1.2.0
+version: 1.2.2
 
 # The path to the Markdown (.md) readme file. This path is relative to the root of the collection
 readme: README.md
@@ -24,8 +24,8 @@ description: A collection around the tool Open-AudIT
 
 # Either a single license or a list of licenses for content inside of a collection. Ansible Galaxy currently only
 # accepts L(SPDX,https://spdx.org/licenses/) licenses. This key is mutually exclusive with 'license_file'
-license:
-- GPL-3.0-only 
+#license:
+#- GPL-3.0-only 
 
 # The path to the license file for the collection. This path is relative to the root of the collection. This key is
 # mutually exclusive with 'license'

@@ -13,21 +13,9 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 import json
-from ansible.module_utils.six import raise_from
-
-# required to satisfy sanity import test:
-try:
-    import requests
-except ImportError as imp_exc:
-    REQUESTS_LIB_IMPORT_ERROR = imp_exc
-else:
-    REQUESTS_LIB_IMPORT_ERROR = None
 
 
 class OA_vars():
-
-    if REQUESTS_LIB_IMPORT_ERROR:
-        raise_from(ImportError("missing a required python lib: 'requests'"), REQUESTS_LIB_IMPORT_ERROR)
 
     # https://<server>/open-audit/index.php/devices
     # changes here likely require to change device_uri_path (add/remove properties)
@@ -74,10 +62,6 @@ class OA_vars():
 
 class OA_get():
 
-    if REQUESTS_LIB_IMPORT_ERROR:
-        # raise Exception("missing a required python lib: 'requests'\n%s" % REQUESTS_LIB_IMPORT_ERROR)
-        raise_from(ImportError("missing a required python lib: 'requests'"), REQUESTS_LIB_IMPORT_ERROR)
-
     def logon_api(self, uri, usr, pw, task_vars, tmp, parsed_args):
         """
         logon to the API with username + password
@@ -100,7 +84,6 @@ class OA_get():
             if module_return['status'] != 200:
                 raise ValueError("Could not login to the API at %s" % uri)
         except Exception as e:
-            # raise AnsibleActionFail("Could not login to the API at " + uri)
             raise e
 
         return module_return['cookies_string']
