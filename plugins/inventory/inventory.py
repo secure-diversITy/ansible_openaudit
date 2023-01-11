@@ -48,14 +48,16 @@ options:
             - Avoid storing sensitive data in clear text by using inline encrypted variables.
             - e.g. C(ansible-vault encrypt_string 'this-is-a-real-username' --name oa_username --ask-vault-pass)
             - At this early stage full encrypted vault files are not accessible.
-        required: true
+            - If the environment variable C(OA_USERNAME) is set it will be used instead (i.e. the environment var wins).
+        required: false
     oa_password:
         description:
             - Password for logging into the API.
             - Avoid storing sensitive data in clear text by using inline encrypted variables.
             - e.g. C(ansible-vault encrypt_string 'this-is-a-realpassword!' --name oa_password --ask-vault-pass)
             - At this early stage full encrypted vault files are not accessible.
-        required: true
+            - If the environment variable C(OA_PASSWORD) is set it will be used instead (i.e. the environment var wins).
+        required: false
     oa_fieldsTranslate:
         description:
             - A dictionary of all C(Ansible variable <-> field-id) mappings.
@@ -141,10 +143,20 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
             import urllib3
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+        try:
+            import os
+            oa_username_conf = os.environ.get('OA_USERNAME', self.get_option('oa_username'))
+            oa_password_conf = os.environ.get('OA_PASSWORD', self.get_option('oa_password'))
+            if oa_username_conf is None or oa_password_conf is None:
+                raise ValueError("Either username or password missing")
+        except Exception as e:
+            raise AnsibleError("Error getting credentials. Either set environment variables or setup" +
+                               "the inventory file properly. Error message: %s" % to_native(e))
+
         oaSession = requests.Session()
         try:
             oa_login = oaSession.post(base_uri + oavars.logon_uri_path,
-                                      data={'username': self.get_option('oa_username'), 'password': self.get_option('oa_password')},
+                                      data={'username': oa_username_conf, 'password': oa_password_conf},
                                       verify=certcheck)
             if oa_login.status_code != 200:
                 if oa_login is None:
