@@ -49,7 +49,9 @@ options:
             - e.g. C(ansible-vault encrypt_string 'this-is-a-real-username' --name oa_username --ask-vault-pass)
             - At this early stage full encrypted vault files are not accessible.
             - If the environment variable C(OA_USERNAME) is set it will be used instead (i.e. the environment var wins).
-        required: false
+        env:
+            - name: OA_USERNAME
+        required: true
     oa_password:
         description:
             - Password for logging into the API.
@@ -57,7 +59,9 @@ options:
             - e.g. C(ansible-vault encrypt_string 'this-is-a-realpassword!' --name oa_password --ask-vault-pass)
             - At this early stage full encrypted vault files are not accessible.
             - If the environment variable C(OA_PASSWORD) is set it will be used instead (i.e. the environment var wins).
-        required: false
+        env:
+            - name: OA_PASSWORD
+        required: true
     oa_fieldsTranslate:
         description:
             - A dictionary of all C(Ansible variable <-> field-id) mappings.
