@@ -133,3 +133,5 @@ dmypy.json
 *.tar.gz
 *.asc
 __init__.py
+/FILES.json
+/MANIFEST.json
