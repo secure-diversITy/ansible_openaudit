@@ -8,7 +8,7 @@ namespace: sedi
 name: openaudit
 
 # The version of the collection. Must be compatible with semantic versioning
-version: 1.2.2
+version: 1.3.1
 
 # The path to the Markdown (.md) readme file. This path is relative to the root of the collection
 readme: README.md
@@ -62,3 +62,4 @@ issues: https://github.com/secure-diversITy/ansible_openaudit/issues
 # and '.git' are always filtered
 build_ignore:
   - build.sh
+  - '*.asc'

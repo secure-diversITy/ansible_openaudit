@@ -26,7 +26,7 @@ author: Thomas Fischer (@se-di)
 version_added: '1.0.0'
 requirements:
     - python3 >= '3.5'
-    - python-requests
+    - python-requests >= '2.16.0'
     - Open-AudIT >= '4.3.4'
 options:
     plugin:
@@ -68,6 +68,14 @@ options:
                     - It becomes part of the hostvars for a host when you add it to a device in Open-AudIT.
                 type: int
         required: false
+    verify_certs:
+        description: Verify the SSL certificate of the Open-AudIT api.
+        choices:
+            - true
+            - false
+        default: true
+        required: false
+        version_added: '1.3.0'
 seealso:
     - name: Plugin documentation
       description: Detailed examples and guidelines for this plugin
@@ -92,6 +100,7 @@ from ansible_collections.sedi.openaudit.plugins.module_utils.common import OA_ge
 from ansible.plugins.inventory import BaseInventoryPlugin, Constructable
 from ansible.module_utils.six import raise_from
 from ansible.errors import AnsibleError
+from ansible.module_utils._text import to_native
 
 # required to satisfy sanity import test:
 try:
@@ -120,17 +129,35 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
                 self.display.vvv('Skipping due to inventory source not ending in "openaudit.yml" nor "oa.yml"')
         return False
 
-    def login_oa(self, base_uri: str):
+    def login_oa(self, base_uri: str, certcheck):
         """
         Create a session to the Open-AudIT API and store as cookie
         """
         global oaSession
         global oa_login
+
+        # disable warning when disabling certification verification
+        if certcheck is False:
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
         oaSession = requests.Session()
-        oa_login = oaSession.post(base_uri + oavars.logon_uri_path,
-                                  data={'username': self.get_option('oa_username'), 'password': self.get_option('oa_password')})
-        if oa_login.status_code != 200:
-            raise Exception("Could not login to the API at " + base_uri + "! Check servername and credentials...")
+        try:
+            oa_login = oaSession.post(base_uri + oavars.logon_uri_path,
+                                      data={'username': self.get_option('oa_username'), 'password': self.get_option('oa_password')},
+                                      verify=certcheck)
+            if oa_login.status_code != 200:
+                if oa_login is None:
+                    raise ValueError("unknown login issue occured")
+                else:
+                    raise ValueError(oa_login)
+        except ValueError as e:
+            raise AnsibleError("Could not login to the API at " + base_uri + "! Check servername and credentials... Error message: %s" % to_native(e))
+        except Exception as e:
+            raise AnsibleError("Could not login to the API at " + base_uri +
+                               "!\nWhen using self-signed certificates set 'verify_certs: False'" +
+                               "in your inventory or add the custom CA to your local system CA bundle. " +
+                               "Error message: %s" % to_native(e))
 
     def to_valid_group_name(self, name):
         """
@@ -160,8 +187,14 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         # build first part of the uri based on the user config
         api_base_uri = self.get_option('oa_api_proto') + '://' + self.get_option('oa_api_server')
 
+        # get cert verification config
+        try:
+            certcheck = self.get_option('verify_certs')
+        except Exception:
+            certcheck = True
+
         # login first
-        self.login_oa(api_base_uri)
+        self.login_oa(api_base_uri, certcheck)
 
         # fetch all data
         oaDataList = oaget.oa_data(self, oaSession, oa_login, api_base_uri, oavars.devices_uri_path)
