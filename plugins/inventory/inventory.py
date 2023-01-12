@@ -132,7 +132,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
             if path.endswith(('openaudit.yaml', 'openaudit.yml', 'oa.yaml', 'oa.yml')):
                 return True
             else:
-                self.display.vvv('Skipping due to inventory source not ending in "openaudit.yml" nor "oa.yml"')
+                self.display.vvv('Skipping due to inventory source not ending in "openaudit.yml/yaml" nor "oa.yml/yaml"')
         return False
 
     def login_oa(self, base_uri: str, certcheck):
