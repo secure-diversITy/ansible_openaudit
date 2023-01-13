@@ -80,9 +80,8 @@ class OA_get():
             module_return = self._execute_module(module_name='ansible.legacy.uri',
                                                  module_args=module_args,
                                                  task_vars=task_vars, tmp=tmp)
-
-            if module_return['status'] != 200:
-                raise ValueError("Could not login to the API at %s" % uri)
+            if 'failed' in module_return or module_return['status'] != 200:
+                raise ValueError("Could not login to the API at %s. Error message: %s" % (uri, module_return['msg']))
         except Exception as e:
             raise e
 
@@ -100,8 +99,8 @@ class OA_get():
                                                  module_args=module_args,
                                                  task_vars=task_vars, tmp=tmp)
 
-            if module_return['status'] != 200:
-                raise ValueError("Could not login to the API at %s" % module_args['url'])
+            if 'failed' in module_return or module_return['status'] != 200:
+                raise ValueError("API call error: %s" % module_return['msg'])
         except Exception as e:
             raise e
 

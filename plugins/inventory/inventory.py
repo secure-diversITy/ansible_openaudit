@@ -76,6 +76,8 @@ options:
         required: false
     verify_certs:
         description: Verify the SSL certificate of the Open-AudIT api.
+        aliases:
+            - validate_certs
         choices:
             - true
             - false
