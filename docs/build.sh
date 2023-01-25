@@ -14,7 +14,7 @@ antsibull-docs \
     collection \
     --use-current \
     --dest-dir temp-rst \
-    maxhoesel.proxmox
+    sedi.openaudit
 
 # Copy collection documentation into source directory
 rsync -cprv --delete-after temp-rst/collections/ rst/collections/
