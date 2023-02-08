@@ -267,7 +267,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
                             if ";" in loc['attributes'][lk]:
                                 la = loc['attributes'][lk].split(';')
                             else:
-                                la = [ loc['attributes'][lk] ]
+                                la = [loc['attributes'][lk]]
                             lodict = dict(s.split('=', 1) for s in la)
                             for lok, lov in lodict.items():
                                 self.inventory.set_variable(host, lok, lov)
