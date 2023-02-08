@@ -262,9 +262,12 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
                             continue
                         if len(str(loc['attributes'][lk])) < min_var_chars:
                             continue
-                        # the special field suite can hold multiple key=value pairs
-                        if lk == "suite" and ";" in loc['attributes'][lk]:
-                            la = loc['attributes'][lk].split(';')
+                        # the special field suite can hold one or multiple key=value pairs
+                        if lk == "suite":
+                            if ";" in loc['attributes'][lk]:
+                                la = loc['attributes'][lk].split(';')
+                            else:
+                                la = [ loc['attributes'][lk] ]
                             lodict = dict(s.split('=', 1) for s in la)
                             for lok, lov in lodict.items():
                                 self.inventory.set_variable(host, lok, lov)
