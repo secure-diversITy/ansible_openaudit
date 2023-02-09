@@ -38,6 +38,13 @@ class OA_vars():
         'suite': 'cmdb_location_vars',
     }
 
+    # https://<server>/open-audit/index.php/groups
+    groupsTranslate = {
+        'groups.id': 'cmdb_group_id',
+        'groups.description': 'cmdb_group_vars',
+        'groups.name': 'cmdb_group_name',
+    }
+
     # build properties list we want to fetch based on devicesTranslate
     devp = []
     for pk, pv in devicesTranslate.items():
@@ -50,7 +57,9 @@ class OA_vars():
     devices_uri_path = device_uri_path + '?format=json&properties=' + devicesproperties
     fields_uri_path = '/open-audit/index.php/devices?format=json&properties=system.id&sub_resource=field'
     locations_uri_path = '/open-audit/index.php/locations?&format=json'
-    # orgs_uri_path = '/open-audit/index.php/orgs?&format=json'
+    groups_base_uri_path = '/open-audit/index.php/groups'
+    groups_list_uri_path = groups_base_uri_path + '?format=json&properties=groups.id,groups.description,groups.name'
+    groups_execute_path = '/execute?format=json&properties=system.id,system.fqdn'
 
     # messages
     default_error_hint = "Check that:\n- your credentials are correct\n"\
@@ -108,9 +117,11 @@ class OA_get():
 
     def oa_data(self, oaSession, oa_login, base_uri, uri_path):
         """
-        LEGACY! Use api() instead (see above)
+        inventory only. Use api() for modules (see above)
         fetches data from given api url
         """
+
+        self.display.vvvv('checking the following remote uri: ' + uri_path)
 
         OAdata = oaSession.get(base_uri + uri_path, cookies=oa_login.cookies)
         jsonData = json.loads(OAdata.text)
@@ -120,8 +131,11 @@ class OA_get():
             raise Exception("Could not access %s ! Check servername and credentials..." % uri_path)
 
         # Check again if we have valid data
-        for resp in jsonDataList:
-            if resp is False:
-                raise Exception("Error while accessing the API")
+        if jsonDataList:
+            for resp in jsonDataList:
+                if resp is False:
+                    raise Exception("Error while accessing the API")
 
-        return jsonDataList
+            return jsonDataList
+        else:
+            return

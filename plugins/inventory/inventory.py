@@ -214,10 +214,11 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         # login first
         self.login_oa(api_base_uri, certcheck)
 
-        # fetch all data
+        # fetch all data we need
         oaDataList = oaget.oa_data(self, oaSession, oa_login, api_base_uri, oavars.devices_uri_path)
         oaFieldsList = oaget.oa_data(self, oaSession, oa_login, api_base_uri, oavars.fields_uri_path)
         oaLocationsList = oaget.oa_data(self, oaSession, oa_login, api_base_uri, oavars.locations_uri_path)
+        oaGroupsList = oaget.oa_data(self, oaSession, oa_login, api_base_uri, oavars.groups_list_uri_path)
 
         # read config + display debug info
         conf_strict = self.get_option('strict')
@@ -227,6 +228,52 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         self.display.vvv('config_file -> compose: ' + str(conf_compose))
         self.display.vvv('config_file -> host groups: ' + str(conf_hostgrps))
         self.display.vvv('config_file -> keyed host groups: ' + str(conf_keyedgrps))
+
+        # add group based vars before locations (backwards compat) and fields
+        # that way it will be possible to overwrite them by host vars (and location based won't break)
+        groupsDict = {}
+        for grp in oaGroupsList:
+            grpname = self.to_valid_group_name(grp['attributes']['groups.name'])
+            self.inventory.add_group(grpname)
+
+            # parse through translation items to get possible group vars
+            for gk, gv in oavars.groupsTranslate.items():
+                if gk == "groups.id":
+                    # get all group members for all groups
+                    exec_uri = oavars.groups_base_uri_path + '/' + str(grp['attributes'][gk]) + oavars.groups_execute_path
+                    oaGroupMembers = oaget.oa_data(self, oaSession, oa_login, api_base_uri, exec_uri)
+
+                    # add / update a host - group mapping
+                    if oaGroupMembers:
+                        for grpm in oaGroupMembers:
+                            # grpname = to_valid_group_name(self, grpm['sub_resource_name'])
+                            self.inventory.add_host(grpm['attributes']['system.fqdn'], group=grpname)
+
+                # the special group description can hold one or multiple key=value pairs
+                # the indicator of where the key/values starts is ';; <key>=<value>'
+                # any whitespaces will be wiped
+                # multiple key/values must be separated by a single semicolon
+                if gk == "groups.description":
+                    if ";;" in grp['attributes'][gk]:
+                        trimmed_left = re.sub(r'.*;;', '', grp['attributes'][gk])
+                        trimmed = re.sub(r'\s', '', trimmed_left)
+                        if ";" in grp['attributes'][gk]:
+                            gvar = trimmed.split(';')
+                        elif "=" in grp['attributes'][gk]:
+                            gvar = [grp['attributes'][gk]]
+                    else:
+                        # seems the description is not used to hold variables
+                        continue
+
+                    # split multiple key/values
+                    grpdict = dict(s.split('=', 1) for s in gvar)
+
+                    # .. and add them as host variables
+                    for grpk, grpv in grpdict.items():
+                        self.inventory.set_variable(grpname, grpk, grpv)
+                        groupsDict[grpk] = grpv
+
+        self.display.vvvv('group variables found: ' + str(groupsDict))
 
         # iterate over ever device entry
         for i in oaDataList:
