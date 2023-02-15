@@ -99,6 +99,11 @@ extends_documentation_fragment:
 """
 
 EXAMPLES = r'''
+
+ansible-inventory -i inventories/dynamic/inventory.openaudit.yml --host srv01.foo.local
+
+ansible-inventory -i inventories/dynamic/inventory.openaudit.yml --list
+
 '''
 
 # required imports
@@ -298,30 +303,45 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
             for dkey, dvar in hostsDict.items():
                 self.inventory.set_variable(host, dkey, dvar)
 
-            # add location based vars before fields
-            # that way it will be possible to overwrite them by host vars
+            # add location based vars after the new group vars but before fields mapped to a host
+            # that way it will be possible to overwrite them by what's defined in the host
             for loc in oaLocationsList:
                 if not hostsDict['cmdb_location_id'] and not hostsDict['cmdb_org_id']:
                     continue
                 else:
+                    # parse through translation items to get possible location vars
                     for lk, lv in oavars.locationsTranslate.items():
                         if hostsDict['cmdb_location_id'] != loc['attributes']['id']:
                             continue
                         if len(str(loc['attributes'][lk])) < min_var_chars:
                             continue
-                        # the special field suite can hold one or multiple key=value pairs
+                        # the special location field "suite" can hold one or multiple key=value pairs
+                        # the indicator of where the key/values starts is ';; <key>=<value>'
+                        # any whitespaces will be wiped
+                        # multiple key/values must be separated by a single semicolon
                         if lk == "suite":
-                            if ";" in loc['attributes'][lk]:
-                                la = loc['attributes'][lk].split(';')
+                            if ";;" in loc['attributes'][lk]:
+                                trimmed_left = re.sub(r'.*;;', '', loc['attributes'][lk])
+                                trimmed = re.sub(r'\s', '', trimmed_left)
+                                if ";" in loc['attributes'][lk]:
+                                    lvar = trimmed.split(';')
+                                elif "=" in loc['attributes'][lk]:
+                                    lvar = [loc['attributes'][lk]]
                             else:
-                                la = [loc['attributes'][lk]]
-                            lodict = dict(s.split('=', 1) for s in la)
+                                # seems suite is not used to hold variables
+                                continue
+
+                            # split multiple key/values
+                            lodict = dict(s.split('=', 1) for s in lvar)
+                            # .. and add them as host variables
                             for lok, lov in lodict.items():
                                 self.inventory.set_variable(host, lok, lov)
                                 hostsDict[lok] = lov
                         else:
                             self.inventory.set_variable(host, lv, loc['attributes'][lk])
                             hostsDict[lv] = loc['attributes'][lk]
+
+                        self.display.vvvv('location variables found: ' + str(hostsDict))
 
             # apply any local defined (config file) variables
             # overwrites location / group variables coming from Open-AudIT
@@ -350,9 +370,11 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
                                 else:
                                     self.inventory.set_variable(host, fk, f['attributes']['field.value'])
                                 hostsDict[fk] = f['attributes']['field.value']
+                # set field mappings as hostvar so we can access them in other modules
+                self.inventory.set_variable(host, 'dictFieldMap', fTopt)
 
             # add hosts to their static group based on org and/or location
-            # prob: atm (i.e. Open-AudIT v4.3.4) a user can select even locations NOT bound to the selected
+            # prob: atm (i.e. Open-AudIT v4.4.1) a user can select even locations NOT bound to the selected
             # organisation! That way you will can easily see wrong group mappings when a user picks the wrong location
             # not belonging to that org.. Hopefully get fixed by SUPPORT-10106
             constructed_grp_name = []

@@ -63,12 +63,14 @@ options:
             fields:
                 description:
                     - A dictionary of field names including their target values.
-                    - Keys are the corresponding Open-AudIT field name, values will be set accordingly.
-                    - Any field name(!) you wish to update. Value can be a string or integer but ensure it is valid in Open-AudIT (check documentation).
-                    - Must be 100% as the name in Open-AudIT.
-                    - Special chars must be quoted.
-                    - If you've updating trouble on custom fields check
-                    - the L(documentation,https://github.com/secure-diversITy/ansible_openaudit_inventory/wiki).
+                    - The field name is either specified in your own field mappings in "oa_fieldsTranslate"
+                    - (e.g. in ./inventories/dynamic/inventory.openaudit.yml) or is a valid internal Open-AudIT field.
+                    - The easiest way to get a list of all valid Open-AudIT fields is specifying an invalid key
+                    - (e.g. set C(oa.invalidkey)) and it will print all available (internal, i.e. not custom) field names.
+                    - You can set any (valid) field name you wish to update.
+                    - Important is that for drop-down lists in Open-AudIT you have to set exactly the value as it is defined!
+                    - For custom field lists C(fields -> List -> Values) or internal lists in C(attributes -> list -> Value store)
+                    - If you want to specify a boolean C(true|false) as value, you HAVE TO quote it so it gets not translated by Ansible.
                 required: true
                 type: dict
 seealso:
@@ -84,5 +86,38 @@ seealso:
 """
 
 EXAMPLES = r'''
-See L(documentation,https://github.com/secure-diversITy/ansible_openaudit_inventory/wiki)
+For more examples and details check L(documentation,https://github.com/secure-diversITy/ansible_openaudit_inventory/wiki)
+
+- name: Update OA
+  gather_facts: false
+  hosts: all
+
+  tasks:
+    - name: "Update CMDB info for {{ inventory_hostname }}"
+      connection: local
+      become: no
+      sedi.openaudit.set:
+        api_server: my.openauditserver.local
+        api_protocol: https
+        username: "{{ vault_api_server_user }}"
+        password: "{{ vault_api_server_password }}"
+        return_content: true
+        validate_certs: false
+        collection: devices
+        attributes:
+            - fqdn: "{{ inventory_hostname }}"
+              fields:
+                oa.org_id: 2
+                oa.oae_manage: n
+                oa.owner: sedi
+                oa.class: server
+                oa.type: computer
+                oa.manufacturer: "Gigabyte"
+                oa.status: staging
+                # custom fields:
+                network_configuration: 'true'
+                my_other_custom_field: "{{ another_var }}"
+                # set e.g. the following to get all valid internal OA fields
+                #oa.invalidfield: foo
+
 '''

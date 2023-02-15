@@ -65,6 +65,7 @@ class ActionModule(ActionBase):
         except NameError:
             raise AnsibleActionFail("Error: You have not specified a valid update type.\n\nCurrently supported are:\n- devices")
 
+        # parse given fields and map them according to their definitions
         try:
             for o in _args['attributes']:
                 for lk, v in o.items():
@@ -95,7 +96,7 @@ class ActionModule(ActionBase):
                                              device_data=device_data,
                                              tmp=tmp, task_vars=task_vars,
                                              module_args=module_args)
-                result.update(module_return, changed=True)
+                result.update(module_return)
             except Exception as e:
                 raise AnsibleActionFail("Problem occured while updating attributes for >" + device_data['fqdn']
                                         + "<\n\nError message was:\n%s\n\n%s" % (to_native(e), oavars.default_error_hint))
