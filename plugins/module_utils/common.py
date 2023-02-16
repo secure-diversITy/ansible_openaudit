@@ -24,14 +24,14 @@ class OA_vars():
     # changes here likely require to change device_uri_path (add/remove properties)
     # use "oa.<fieldname>" instead of the following translation in your plays/roles
     devicesTranslate = {
-        'orgs.name': 'cmdb_org',
-        'org_id': 'cmdb_org_id',
-        'system.ip': 'cmdb_ip',
-        'system.manufacturer': 'cmdb_manufacturer',
-        'system.id': 'cmdb_oa_id',
-        'system.fqdn': 'cmdb_fqdn',
-        'system.status': 'cmdb_status',
-        'system.location_id': 'cmdb_location_id'
+        'orgs.name': 'oa.org',
+        'org_id': 'oa.org_id',
+        'system.ip': 'oa.ip',
+        'system.manufacturer': 'oa.manufacturer',
+        'system.id': 'oa.id',
+        'system.fqdn': 'oa.fqdn',
+        'system.status': 'oa.status',
+        'system.location_id': 'oa.location_id'
     }
     # accessing /devices/<id> will fail when e.g orgs.name is in properties:
     singleDeviceT = devicesTranslate
@@ -39,17 +39,17 @@ class OA_vars():
 
     # https://<server>/open-audit/index.php/locations
     locationsTranslate = {
-        'orgs.name': 'cmdb_org',
-        'orgs.id': 'l_cmdb_org_id',
-        'name': 'cmdb_location',
-        'suite': 'cmdb_location_vars',
+        'orgs.name': 'oa.org',
+        'orgs.id': 'oa.l_org_id',
+        'name': 'oa.location',
+        'suite': 'oa.location_vars',
     }
 
     # https://<server>/open-audit/index.php/groups
     groupsTranslate = {
-        'groups.id': 'cmdb_group_id',
-        'groups.description': 'cmdb_group_vars',
-        'groups.name': 'cmdb_group_name',
+        'groups.id': 'oa.group_id',
+        'groups.description': 'oa.group_vars',
+        'groups.name': 'oa.group_name',
     }
 
     # build properties list we want to fetch based on devicesTranslate

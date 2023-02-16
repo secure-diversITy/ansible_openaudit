@@ -16,12 +16,12 @@ name: inventory
 short_description: Returns a dynamic host inventory from Open-AudIT
 description:
     - This inventory plugin will login to Open-AudIT and downloads the device list,
-    - fetches all fields, locations and orgs for all devices,
-    - maps all fields to (defined) human readable names
-    - and finally returns an Ansible inventory.
-    - It supports using custom fields in Open-AudIT which can then be used in Ansible as variables.
-    - This plugin is B(not) developed by Firstwave (was Opmantek until 2021) nor has any commercial relationship to them.
-    - It is simply a contribution to the community in the hope it is useful and of course without any warranties.
+      fetches all fields, locations and orgs for all devices,
+      maps all fields to (defined) human readable names
+      and finally returns an Ansible inventory.
+      It supports using custom fields in Open-AudIT which can then be used in Ansible as variables.
+      This plugin is B(not) developed by Firstwave (was Opmantek until 2021) nor has any commercial relationship between.
+      It is simply a contribution to the community in the hope it is useful and of course without any warranties.
 author: Thomas Fischer (@se-di)
 version_added: '1.0.0'
 requirements:
@@ -251,7 +251,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
                     # add / update a host - group mapping
                     if oaGroupMembers:
                         for grpm in oaGroupMembers:
-                            # grpname = to_valid_group_name(self, grpm['sub_resource_name'])
+                            self.display.vvvv("processing: %s" % str(grpm['attributes']['system.fqdn']))
                             self.inventory.add_host(grpm['attributes']['system.fqdn'], group=grpname)
 
                 # the special group description can hold one or multiple key=value pairs
@@ -293,10 +293,10 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
                     continue
 
             # add host and the base vars to the ansible inventory based on the FQDN
-            host = hostsDict['cmdb_fqdn']
+            host = hostsDict[oavars.oa_fields_prefix + 'fqdn']
             # handle empty FQDN (skip entry, print warning)
             if len(str(host)) < 4:
-                self.display.vvv('WARNING: host >' + host + '< with id >' + str(hostsDict['cmdb_oa_id']) + '< seems not having a FQDN set')
+                self.display.vvv('WARNING: host >' + host + '< with id >' + str(hostsDict[oavars.oa_fields_prefix + 'oa_id']) + '< seems not having a FQDN set')
                 continue
             # add host to inventory list including base vars
             self.inventory.add_host(host)
@@ -306,12 +306,12 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
             # add location based vars after the new group vars but before fields mapped to a host
             # that way it will be possible to overwrite them by what's defined in the host
             for loc in oaLocationsList:
-                if not hostsDict['cmdb_location_id'] and not hostsDict['cmdb_org_id']:
+                if not hostsDict[oavars.oa_fields_prefix + 'location_id'] and not hostsDict[oavars.oa_fields_prefix + 'org_id']:
                     continue
                 else:
                     # parse through translation items to get possible location vars
                     for lk, lv in oavars.locationsTranslate.items():
-                        if hostsDict['cmdb_location_id'] != loc['attributes']['id']:
+                        if hostsDict[oavars.oa_fields_prefix + 'location_id'] != loc['attributes']['id']:
                             continue
                         if len(str(loc['attributes'][lk])) < min_var_chars:
                             continue
@@ -378,11 +378,12 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
             # organisation! That way you will can easily see wrong group mappings when a user picks the wrong location
             # not belonging to that org.. Hopefully get fixed by SUPPORT-10106
             constructed_grp_name = []
-            if hostsDict['cmdb_location'] and hostsDict['cmdb_org']:
-                constructed_grp_name.append(self.to_valid_group_name(hostsDict['cmdb_org']))
-                constructed_grp_name.append(self.to_valid_group_name(hostsDict['cmdb_org'] + "__" + hostsDict['cmdb_location']))
+            if hostsDict[oavars.oa_fields_prefix + 'location'] and hostsDict[oavars.oa_fields_prefix + 'org']:
+                constructed_grp_name.append(self.to_valid_group_name(hostsDict[oavars.oa_fields_prefix + 'org']))
+                constructed_grp_name.append(self.to_valid_group_name(hostsDict[oavars.oa_fields_prefix + 'org'] +
+                                            "__" + hostsDict[oavars.oa_fields_prefix + 'location']))
             else:
-                constructed_grp_name.append(self.to_valid_group_name(hostsDict['cmdb_org']))
+                constructed_grp_name.append(self.to_valid_group_name(hostsDict[oavars.oa_fields_prefix + 'org']))
 
             for cg in constructed_grp_name:
                 self.inventory.add_group(cg)
