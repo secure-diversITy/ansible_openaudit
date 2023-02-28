@@ -2,7 +2,6 @@
 #####################################################################################################
 #
 # Copyright:
-#   - 2022 T.Fischer <mail |at| sedi -DOT- one>
 #   - 2023 T.Fischer <mail |at| sedi -DOT- one>
 #
 # License: GNU General Public License v3.0 (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
@@ -14,14 +13,14 @@ __metaclass__ = type
 
 DOCUMENTATION = """
 ---
-module: set
-short_description: Updates defined attributes for an existing device in Open-AudIT
+module: get
+short_description: Request a given field/attribute of an existing device in Open-AudIT
 description:
-    - Updates any field of an existing device object in Open-AudIT.
+    - Returns the value of a requested field/attribute in Open-AudIT.
     - This plugin is B(not) developed by Firstwave (was Opmantek until 2021) nor has any commercial relationship to them.
     - It is simply a contribution to the community in the hope it is useful and of course without any warranties.
 author: Thomas Fischer (@se-di)
-version_added: '1.2.0'
+version_added: '2.1.0'
 requirements:
     - python3 >= '3.5'
     - python-requests
@@ -54,25 +53,21 @@ options:
             - devices
         required: true
     attributes:
-        description: A list of device key/value pairs
+        description: A valid Open-AudIT field/attribute name of a collection type (see collection)
         required: true
         suboptions:
             fqdn:
                 description: The FQDN of the device to be updated (must match the field 'FQDN' of that device within Open-AudIT)
                 required: true
-            fields:
+            field:
                 description:
-                    - A dictionary of field names including their target values.
-                    - The field name is either specified in your own field mappings in "oa_fieldsTranslate"
-                    - (e.g. in ./inventories/dynamic/inventory.openaudit.yml) or is a valid internal Open-AudIT field.
+                    - The requested field/attribute. Must be available in Open-AudIT as predefined attribute or
+                    - from your own field mappings in "oa_fieldsTranslate" (e.g. in ./inventories/dynamic/inventory.openaudit.yml).
                     - The easiest way to get a list of all valid Open-AudIT fields is specifying an invalid key
                     - (e.g. set C(oa.invalidkey)) and it will print all available (internal, i.e. not custom) field names.
-                    - You can set any (valid) field name you wish to update.
-                    - Important is that for drop-down lists in Open-AudIT you have to set exactly the value as it is defined!
+                    - Important is that you have to set exactly the value(!)/value store(!) as it is defined in Open-AudIT.
                     - For custom field lists C(fields -> List -> Values) or internal lists in C(attributes -> list -> Value store)
-                    - If you want to specify a boolean C(true|false) as value, you HAVE TO quote it so it gets not translated by Ansible.
                 required: true
-                type: dict
 seealso:
     - name: Plugin documentation
       description: Detailed examples and guidelines for this plugin
@@ -86,26 +81,26 @@ seealso:
 """
 
 RETURN = r'''
-"Changed Open-AudIT fields":
-    description: Each (translated) Open-AudIT field with its changed value
-    returned: always
-    type: dict
-    sample: { "Changed Open-AudIT fields": { network_ip: "changed to 10.1.1.124" } }
+value:
+    description: The value of the requested field/attribute or if invalid a list of valid fields/attributes
+    returned: success
+    type: str
+    sample: 10.1.1.123
 '''
 
 EXAMPLES = r'''
 For more examples and details check L(documentation,https://github.com/secure-diversITy/ansible_openaudit_inventory/wiki)
 
 ---
-- name: Update OA
+- name: Request a field in OA
   gather_facts: false
   hosts: all
 
   tasks:
-    - name: "Update CMDB info for {{ inventory_hostname }}"
+    - name: "Get status info for {{ inventory_hostname }}"
       connection: local
       become: no
-      sedi.openaudit.set:
+      sedi.openaudit.get:
         api_server: my.openauditserver.local
         api_protocol: https
         username: "{{ vault_api_server_user }}"
@@ -115,18 +110,6 @@ For more examples and details check L(documentation,https://github.com/secure-di
         collection: devices
         attributes:
             - fqdn: "{{ inventory_hostname }}"
-              fields:
-                oa.org_id: 2
-                oa.oae_manage: n
-                oa.owner: sedi
-                oa.class: server
-                oa.type: computer
-                oa.manufacturer: "Gigabyte"
-                oa.status: staging
-                # custom fields:
-                network_configuration: 'true'
-                my_other_custom_field: "{{ another_var }}"
-                # set e.g. the following to get all valid internal OA fields
-                #oa.invalidfield: foo
+              field: oa.status
 
 '''

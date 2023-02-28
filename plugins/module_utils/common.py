@@ -13,6 +13,7 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 import json
+from ansible.module_utils._text import to_native
 
 
 class OA_vars():
@@ -91,6 +92,8 @@ class OA_vars():
                          "- the device actually exists in Open-AudIT\n"\
                          "-'FQDN' field is set properly in Open-AudIT and within your task"
     documentation_link = "https://github.com/secure-diversITy/ansible_openaudit/wiki"
+    wrong_field_msg = 'The defined field does not exist or is misspelled: >%s<\n'\
+                      'For custom(!) fields ensure you have set a proper mapping in "oa_fieldsTranslate" instead..'
 
 
 class OA_get():
@@ -179,3 +182,48 @@ class OA_misc():
                 res.append(OA_vars.oa_fields_prefix + item.rpartition('system.')[-1])
 
         return res
+
+    def parse_args(self, scheme_server, args):
+        """
+        parse given parameters of a module and set URI path based on collection
+        returns all module_args parsed as dict
+        """
+
+        module_args = dict()
+
+        for p in args:
+            if p == 'api_protocol' or p == 'api_server' or p == 'username' or p == 'password':
+                continue
+            if p == 'collection':
+                if args[p] == "devices":
+                    module_args['collection_type'] = "devices"
+                    module_args['url'] = scheme_server + OA_vars.device_uri_path + "?format=json&properties=system.id,system.fqdn"
+                elif args[p] == "location":
+                    raise KeyError("Sorry but the option '%s' is not ready yet" % p)
+                    # module_args['collection_type'] = "locations"
+                    # module_args['url'] = scheme_server + OA_vars.locations_uri_path
+                elif args[p] == "fields":
+                    raise KeyError("Sorry but the option '%s' is not ready yet" % p)
+                    # module_args['collection_type'] = "fields"
+                    # module_args['url'] = scheme_server + OA_vars.fields_uri_path
+            else:
+                module_args[p] = args[p]
+
+        return module_args
+
+    def create_attrs_dict(self, attrs):
+        """
+        parse given attributes and return a dict
+        """
+
+        dd = {}
+        try:
+            for o in attrs:
+                for lk, v in o.items():
+                    dd[lk] = v
+        except KeyError as e:
+            raise KeyError("Error: 'attributes' option is missing.\nError was: %s" % to_native(e))
+        except Exception as e:
+            raise ValueError("You have not specified valid 'attributes'.\nError was: %s" % to_native(e))
+
+        return dd

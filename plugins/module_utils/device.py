@@ -21,6 +21,65 @@ from ansible_collections.sedi.openaudit.plugins.module_utils.common import OA_mi
 
 class OA_device():
 
+    def get_field(self, field, task_vars, tmp, margs, return_valid_fields=False):
+        """
+        fetch a specified field for a specific device fqdn
+        returns the value of that field.
+        if no matching field name could be found return None or all valid fields (if requested)
+        """
+
+        p_field = field.rpartition("system.")[-1]
+
+        # first try to get value from host vars
+        for hvk, hvv in task_vars.items():
+            if p_field == hvk:
+                return hvv
+
+        # ... if not avail as hostvar fetch all device info
+        try:
+            get_ret = oaget.api(self, tmp=tmp, task_vars=task_vars, parsed_args=margs)
+        except Exception as e:
+            raise e
+
+        # ... and try first the internal fields attached to the device
+        for rd in get_ret['data']:
+            # print(rd['attributes'])
+            for dk, dv in rd['attributes'].items():
+                if p_field == dk:
+                    return dv
+
+        # ... and as last try parse all custom fields attached to the device
+        for a in get_ret['included']:
+            if a['type'] == 'audit_log':
+                continue
+            for ik, iv in a['attributes'].items():
+                if p_field == ik:
+                    return iv
+
+        # ... when there is no match, return None or valid fields
+        if return_valid_fields:
+            ret = OA_device.get_valid_fields(self, margs, task_vars, tmp)
+            ret.update(failed=True)
+            return ret
+        else:
+            return None
+
+    def get_valid_fields(self, module_field_args, task_vars, tmp):
+        """
+        get all valid fields for a device
+        returns a dict of valid field names
+        """
+
+        validfields = {}
+        try:
+            am_ret = oaget.api(self, tmp=tmp, task_vars=task_vars, parsed_args=module_field_args)
+            validfields['Valid Open-AudIT fields'] = oamisc.replace_oa_prefix(self, data=am_ret['meta']['data_order'])
+        except Exception as e:
+            raise e
+
+        vf_sorted = sorted(validfields.items(), key=lambda item: item[1])
+        return dict(vf_sorted)
+
     def parse_device_data(self, data, fqdn):
         """
         parse given device data for a specific device fqdn
@@ -190,14 +249,9 @@ class OA_device():
         # invalid keys will fail and show valid ones
         if invalid_key is not False:
             module_field_args['url'] = scheme_server + oavars.device_uri_path + '/' + device_id + '?format=json&include=all'
-            am_ret = oaget.api(self, tmp=tmp, task_vars=task_vars, parsed_args=module_field_args)
-            validfields = {}
-            validfields['Valid Open-AudIT fields'] = oamisc.replace_oa_prefix(self, data=am_ret['meta']['data_order'])
-            line1 = 'The defined field does not exist or is misspelled: >%s<\n'
-            line2 = 'For custom(!) fields ensure you have set a proper mapping in "oa_fieldsTranslate" instead..'
-            msg = line1 + line2
-            return dict(failed=True, message=validfields,
-                        original_message=msg
+            ret = OA_device.get_valid_fields(self, module_field_args, task_vars, tmp)
+            return dict(failed=True, message=ret,
+                        original_message=oavars.wrong_field_msg
                         % invalid_key)
 
         if chgreq:
@@ -209,8 +263,6 @@ class OA_device():
                 ret = oaget.api(self, tmp=tmp, task_vars=task_vars, parsed_args=module_args)
             except Exception as e:
                 raise Exception("Problem occured while updating the following attributes:\n" + json.dumps(body_data) + "\n%s" % to_native(e))
-
-            # print(ret)
 
             # add proper output
             module_return = {}
